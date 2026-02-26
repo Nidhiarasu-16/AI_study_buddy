@@ -58,15 +58,17 @@ if st.button("Generate Lesson") and topic:
         2. 5 key study bullet points.
         3. 3 multiple-choice questions. 
         
-        CRITICAL FORMATTING FOR MCQs: 
-        Ensure each MCQ option (A, B, C, D) is on its own NEW LINE. 
-        Example:
+        CRITICAL ALIGNMENT RULE: 
+        Do NOT put options on the same line. Each option must start on its own new line with a letter and a parenthesis.
+        
+        Example Format:
+        Q1: [Question text here]
         A) Option one
         B) Option two
         C) Option three
         D) Option four
         
-        At the very end of your response, write exactly 'ANSWERS_BELOW' and then provide the correct answers.
+        At the very end, write 'ANSWERS_BELOW' followed by the keys.
         """
         
         try:
