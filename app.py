@@ -1,3 +1,5 @@
+# app.py
+
 import streamlit as st
 from transformers import pipeline
 
@@ -10,18 +12,18 @@ Enter any topic, and get:
 - Quiz questions / flashcards
 """)
 
-# --- Input topic ---
+# Input topic
 topic = st.text_input("Enter a topic you want to study:")
 
 if topic:
     st.subheader("Generating results...")
     
-    # Spinner to show processing
     with st.spinner("Processing your topic..."):
         try:
             # --- 1. Explain in simple terms ---
-            explainer = pipeline("text2text-generation", model="google/flan-t5-small")
-            explanation = explainer(f"Explain {topic} in simple terms for a student.", max_length=200)[0]["generated_text"]
+            explainer = pipeline("text-generation", model="google/flan-t5-small")
+            explanation_prompt = f"Explain {topic} in simple terms for a student."
+            explanation = explainer(explanation_prompt, max_length=200)[0]["generated_text"]
             
             # --- 2. Summarize notes ---
             summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
@@ -36,7 +38,7 @@ if topic:
             st.error(f"Error generating content: {e}")
             st.stop()
     
-    # --- Display results ---
+    # Display results
     st.subheader("📘 Simple Explanation")
     st.write(explanation)
     
