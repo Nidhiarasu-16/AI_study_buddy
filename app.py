@@ -1,75 +1,48 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
 
 # --- 1. Page Config ---
-st.set_page_config(page_title="AI Study Buddy", page_icon="🧠", layout="centered")
+st.set_page_config(page_title="AI Study Buddy", page_icon="🧠")
 
 # --- 2. API Setup ---
-# Access your key from Streamlit Secrets (for Cloud) or st.sidebar (for testing)
 if "GEMINI_API_KEY" in st.secrets:
-    api_key = st.secrets["GEMINI_API_KEY"]
+    API_KEY = st.secrets["GEMINI_API_KEY"]
 else:
-    api_key = st.sidebar.text_input("Enter Gemini API Key:", type="password")
+    API_KEY = st.sidebar.text_input("Enter Gemini API Key:", type="password")
 
-if not api_key:
-    st.info("Please add your Google API Key to continue.")
+if not API_KEY:
+    st.info("Please add your Google API Key in the sidebar or Secrets to continue.")
     st.stop()
 
-genai.configure(api_key=api_key)
+# Initialize the new GenAI Client
+client = genai.Client(api_key=API_KEY)
 
-# --- 3. Model Initialization (with Error Handling) ---
-try:
-    # 'gemini-1.5-flash' is the most reliable for study tools
-    model = genai.GenerativeModel('gemini-1.5-flash')
-except Exception as e:
-    st.error(f"Model Error: {e}")
-    st.stop()
-
-# --- 4. UI Layout ---
+# --- 3. UI Layout ---
 st.title("AI-Powered Study Buddy 🤓")
-st.markdown("Transform any topic into a structured lesson plan instantly.")
-
-topic = st.text_input("What do you want to learn?", placeholder="e.g. Black Holes, Photosynthesis, Roman Empire")
+topic = st.text_input("What do you want to learn?", placeholder="e.g. Quantum Entanglement")
 
 if topic:
-    with st.spinner(f"Analyzing '{topic}'..."):
-        # The "Super Prompt" - Instructions for formatting and tone
+    with st.spinner(f"Preparing your lesson on {topic}..."):
         prompt = f"""
-        Act as a world-class educational tutor. Create a study guide for the topic: {topic}.
-        Please structure your response exactly as follows:
-        
-        # 📘 Simple Explanation
-        Explain this like I'm a high school student. Use an analogy.
-        
-        # 📝 Key Study Notes
-        - Provide 5 bullet points of the most critical facts.
-        - Bold the key terms.
-        
-        # ❓ Quick Quiz
-        - Provide 3 multiple-choice questions.
-        - Provide the answers at the very end inside a 'collapsible' format.
+        Act as an expert teacher. Create a study guide for: {topic}.
+        Include:
+        1. A simple explanation with an analogy.
+        2. 5 key study bullet points.
+        3. 3 multiple-choice questions (include answers at the bottom).
         """
-
+        
         try:
-            response = model.generate_content(prompt)
-            content = response.text
-            
-            # Displaying the content
-            st.markdown("---")
-            st.markdown(content)
-            
-            st.success("Study guide generated!")
-            
-            # Bonus: Download Button
-            st.download_button(
-                label="Download Notes as Text",
-                data=content,
-                file_name=f"{topic.replace(' ', '_')}_notes.txt",
-                mime="text/plain"
+            # We use gemini-2.5-flash, the 2026 workhorse model
+            response = client.models.generate_content(
+                model="gemini-2.5-flash", 
+                contents=prompt
             )
-
+            
+            st.markdown("---")
+            st.markdown(response.text)
+            
         except Exception as e:
-            st.error(f"Generation failed: {e}")
-
+            st.error(f"Error: {e}")
+            st.write("Tip: If you see a 404, try changing the model name to 'gemini-2.0-flash'.")
 else:
-    st.info("Enter a topic above to generate your study materials.")
+    st.info("Enter a topic to get started.")
