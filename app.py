@@ -2,9 +2,6 @@ import streamlit as st
 from google import genai
 from fpdf import FPDF
 
-# --- 1. Page Config ---
-st.set_page_config(page_title="AI Study Buddy", page_icon="🧠")
-
 # --- 2. CSS FIX: Remove "Press enter to apply" ---
 st.markdown(
     """
