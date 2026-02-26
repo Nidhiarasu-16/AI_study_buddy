@@ -5,7 +5,7 @@ import os
 # --- Configuration ---
 # Get your API key from https://aistudio.google.com/
 # For security, it's best to use st.secrets or an environment variable
-API_KEY = "YOUR_GEMINI_API_KEY_HERE" 
+API_KEY = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
