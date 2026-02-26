@@ -15,6 +15,7 @@ if not API_KEY:
     st.info("Please add your Google API Key in the sidebar or Secrets to continue.")
     st.stop()
 
+# Initialize the client (Pick up API key from variable)
 client = genai.Client(api_key=API_KEY)
 
 # --- 3. Helper Functions ---
@@ -26,7 +27,7 @@ def generate_pdf(text, topic):
     pdf.ln(10)
     pdf.set_font("Arial", size=12)
     
-    # Clean text for PDF compatibility
+    # PDF libraries often fail on emojis or complex unicode
     clean_text = text.encode('latin-1', 'ignore').decode('latin-1')
     pdf.multi_cell(0, 10, txt=clean_text)
     
@@ -34,14 +35,14 @@ def generate_pdf(text, topic):
 
 # --- 4. UI Layout ---
 st.title("AI-Powered Study Buddy 🤓")
-topic = st.text_input("What do you want to learn?", placeholder="e.g. Photosynthesis")
+topic = st.text_input("What do you want to learn?", placeholder="e.g. Plate Tectonics")
 
-# Using Session State to prevent re-running the AI when clicking "Show Answers"
+# Use Session State so the lesson stays visible when you click PDF/Quiz buttons
 if "study_content" not in st.session_state:
     st.session_state.study_content = None
 
 if st.button("Generate Lesson") and topic:
-    with st.spinner(f"Creating your guide for {topic}..."):
+    with st.spinner(f"Consulting the 2026 knowledge base for {topic}..."):
         prompt = f"""
         Act as an expert teacher. Create a study guide for: {topic}.
         Include:
@@ -49,47 +50,45 @@ if st.button("Generate Lesson") and topic:
         2. 5 key study bullet points.
         3. 3 multiple-choice questions.
         
-        At the very end of your response, write exactly 'ANSWERS_BELOW' and then provide the correct answers for the MCQs.
+        Important: End the response with 'ANSWERS_SECTION' then the keys.
         """
         
         try:
-            # Using 1.5-flash as it has more stable free-tier quotas than 2.0
+            # UPDATED: Using the 2026 standard model gemini-2.5-flash
             response = client.models.generate_content(
-                model="gemini-1.5-flash", 
+                model="gemini-2.5-flash", 
                 contents=prompt
             )
             st.session_state.study_content = response.text
             
         except Exception as e:
-            st.error(f"API Error: {e}")
+            st.error(f"Error: {e}")
+            if "404" in str(e):
+                st.warning("Tip: Use 'gemini-2.5-flash' or 'gemini-3-flash-preview'.")
 
 # --- 5. Display Content ---
 if st.session_state.study_content:
     full_text = st.session_state.study_content
     
-    # Split text for Quiz Mode
-    if "ANSWERS_BELOW" in full_text:
-        lesson_material, answer_key = full_text.split("ANSWERS_BELOW")
+    if "ANSWERS_SECTION" in full_text:
+        lesson, answers = full_text.split("ANSWERS_SECTION")
     else:
-        lesson_material, answer_key = full_text, "Answers not found in response."
+        lesson, answers = full_text, "Answers unavailable."
 
-    # Show Lesson
     st.markdown("---")
-    st.markdown(lesson_material)
+    st.markdown(lesson)
 
-    # Feature 1: Quiz Mode (Expandable Answers)
-    with st.expander("📝 Check Your Answers"):
-        st.write(answer_key.strip())
+    # Feature 1: Quiz Mode
+    with st.expander("📝 Quiz Mode: Show Answers"):
+        st.write(answers.strip())
 
     st.markdown("---")
 
     # Feature 2: Save as PDF
-    pdf_data = generate_pdf(full_text, topic)
+    pdf_bytes = generate_pdf(full_text, topic)
     st.download_button(
-        label="📥 Download Study Guide (PDF)",
-        data=pdf_data,
-        file_name=f"{topic}_Study_Guide.pdf",
+        label="📥 Save Study Guide as PDF",
+        data=pdf_bytes,
+        file_name=f"{topic}_StudyGuide.pdf",
         mime="application/pdf"
     )
-else:
-    st.info("Enter a topic above to begin!")
