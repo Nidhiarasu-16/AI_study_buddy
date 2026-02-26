@@ -62,11 +62,11 @@ if st.button("Generate Lesson") and topic:
         Do NOT put options on the same line. Each option must start on its own new line with a letter and a parenthesis.
         
         Example Format:
-        Q1: [Question text here]
-        \nA) Option one
-        \nB) Option two
-        \nC) Option three
-        \nD) Option four
+        Q1: [Question text here]\n
+        A) Option one
+        B) Option two
+        C) Option three
+        D) Option four
         
         At the very end, write 'ANSWERS_BELOW' followed by the keys.
         """
