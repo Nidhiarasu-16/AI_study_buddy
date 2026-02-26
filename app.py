@@ -37,11 +37,8 @@ def generate_pdf(text, topic):
     pdf.cell(0, 10, txt=f"Study Guide: {topic}", ln=True, align='C')
     pdf.ln(10)
     pdf.set_font("Arial", size=12)
-    
-    # Clean text for PDF compatibility
     clean_text = text.encode('latin-1', 'ignore').decode('latin-1')
     pdf.multi_cell(0, 10, txt=clean_text)
-    
     return pdf.output(dest='S').encode('latin-1')
 
 # --- 5. UI Layout ---
@@ -53,18 +50,26 @@ if "study_content" not in st.session_state:
 
 if st.button("Generate Lesson") and topic:
     with st.spinner(f"Creating your guide for {topic}..."):
+        # UPDATED PROMPT: Explicitly asking for line-by-line MCQ alignment
         prompt = f"""
         Act as an expert teacher. Create a study guide for: {topic}.
         Include:
         1. A simple explanation with an analogy.
         2. 5 key study bullet points.
-        3. 3 multiple-choice questions.
+        3. 3 multiple-choice questions. 
         
-        At the very end of your response, write exactly 'ANSWERS_BELOW' and then provide the correct answers for the MCQs.
+        CRITICAL FORMATTING FOR MCQs: 
+        Ensure each MCQ option (A, B, C, D) is on its own NEW LINE. 
+        Example:
+        A) Option one
+        B) Option two
+        C) Option three
+        D) Option four
+        
+        At the very end of your response, write exactly 'ANSWERS_BELOW' and then provide the correct answers.
         """
         
         try:
-            # Using the 2026 workhorse model
             response = client.models.generate_content(
                 model="gemini-2.5-flash", 
                 contents=prompt
@@ -78,23 +83,20 @@ if st.button("Generate Lesson") and topic:
 if st.session_state.study_content:
     full_text = st.session_state.study_content
     
-    # Split text for Quiz Mode
     if "ANSWERS_BELOW" in full_text:
         lesson_material, answer_key = full_text.split("ANSWERS_BELOW")
     else:
         lesson_material, answer_key = full_text, "Answers not found in response."
 
-    # Show Lesson
     st.markdown("---")
+    # Streamlit renders markdown, so the newlines from the prompt will show up correctly
     st.markdown(lesson_material)
 
-    # Feature 1: Quiz Mode (Expandable Answers)
     with st.expander("📝 Check Your Answers"):
         st.write(answer_key.strip())
 
     st.markdown("---")
 
-    # Feature 2: Save as PDF
     pdf_data = generate_pdf(full_text, topic)
     st.download_button(
         label="📥 Download Study Guide (PDF)",
