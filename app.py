@@ -1,51 +1,56 @@
-# app.py
-
 import streamlit as st
-from transformers import pipeline
+import google.generativeai as genai
+import os
 
-st.set_page_config(page_title="AI-Powered Study Buddy", page_icon="🧠")
+# --- Configuration ---
+# Get your API key from https://aistudio.google.com/
+# For security, it's best to use st.secrets or an environment variable
+API_KEY = "YOUR_GEMINI_API_KEY_HERE" 
+genai.configure(api_key=API_KEY)
+model = genai.GenerativeModel('gemini-1.5-flash')
+
+st.set_page_config(page_title="AI Study Buddy", page_icon="🧠", layout="wide")
+
 st.title("AI-Powered Study Buddy 🤓")
-st.write("""
-Enter any topic, and get:
-- Simple explanation  
-- Summarized study notes  
-- Quiz questions / flashcards
-""")
+st.markdown("---")
 
-# Input topic
-topic = st.text_input("Enter a topic you want to study:")
+# Input section
+topic = st.text_input("What do you want to learn today?", placeholder="e.g., Photosynthesis, Quantum Physics, The French Revolution")
 
 if topic:
-    st.subheader("Generating results...")
-    
-    with st.spinner("Processing your topic..."):
+    with st.spinner(f"Mastering {topic}... hang tight!"):
         try:
-            # --- 1. Explain topic ---
-            generator = pipeline("text-generation", model="distilgpt2")
-            explanation_prompt = f"Explain the topic '{topic}' in simple terms for a student."
-            explanation = generator(explanation_prompt, max_length=200, do_sample=True, temperature=0.7)[0]["generated_text"]
+            # We use a single prompt to get structured data back. 
+            # This is faster and more cohesive than 3 separate calls.
+            prompt = f"""
+            Act as an expert tutor. Provide the following for the topic: {topic}
             
-            # --- 2. Summarize notes ---
-            summary_prompt = f"Summarize the following explanation into concise study notes:\n{explanation}"
-            summary = generator(summary_prompt, max_length=150, do_sample=True, temperature=0.7)[0]["generated_text"]
+            1. SIMPLE EXPLANATION: Explain it like I'm 15.
+            2. STUDY NOTES: 5-7 bullet points of the most important facts.
+            3. QUIZ: 3 multiple-choice questions with answers hidden at the bottom.
             
-            # --- 3. Generate quiz questions ---
-            quiz_prompt = f"Create 5 multiple-choice quiz questions from the following study notes:\n{summary}"
-            quiz = generator(quiz_prompt, max_length=250, do_sample=True, temperature=0.7)[0]["generated_text"]
+            Format everything clearly using Markdown.
+            """
             
+            response = model.generate_content(prompt)
+            full_text = response.text
+
+            # Displaying the results in organized tabs
+            tab1, tab2, tab3 = st.tabs(["📘 Explanation", "📝 Study Notes", "❓ Quiz"])
+
+            # Logic to split the response if needed, or just show the whole thing
+            # For simplicity, we'll display the AI's formatted markdown
+            with tab1:
+                st.markdown(full_text.split("2. STUDY NOTES")[0])
+            with tab2:
+                # Extracting the notes section
+                notes_part = full_text.split("2. STUDY NOTES")[1].split("3. QUIZ")[0]
+                st.markdown(notes_part)
+            with tab3:
+                quiz_part = full_text.split("3. QUIZ")[1]
+                st.markdown(quiz_part)
+
         except Exception as e:
-            st.error(f"Error generating content: {e}")
-            st.stop()
-    
-    # Display results
-    st.subheader("📘 Simple Explanation")
-    st.write(explanation)
-    
-    st.subheader("📝 Study Notes")
-    st.write(summary)
-    
-    st.subheader("❓ Quiz / Flashcards")
-    st.write(quiz)
-    
+            st.error(f"Something went wrong: {e}")
 else:
-    st.info("Please enter a topic to generate study content.")
+    st.info("Enter a topic above to begin your study session.")
