@@ -39,7 +39,7 @@ def generate_pdf(text, topic):
     return pdf.output(dest='S').encode('latin-1')
 
 # --- 5. UI Layout ---
-st.set_page_config(page_title="LearnGenic AI", page_icon="N")
+st.set_page_config(page_title="LearnGenic AI", page_icon="⚡")
 st.title("⚡ LearnGenic AI: Your AI Study Partner")
 topic = st.text_input("What do you want to learn?", placeholder="e.g. Photosynthesis")
 
