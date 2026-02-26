@@ -42,7 +42,8 @@ def generate_pdf(text, topic):
     return pdf.output(dest='S').encode('latin-1')
 
 # --- 5. UI Layout ---
-st.title("AI-Powered Study Buddy ⚡")
+st.set_page_config(page_title="LearnGenic AI", page_icon="https://similarpng.com/_next/image?url=https%3A%2F%2Fimage.similarpng.com%2Ffile%2Fsimilarpng%2Fvery-thumbnail%2F2021%2F07%2FLetter-N-chrome-initial-logo-template-on-transparent-background-PNG.png&w=1080&q=75")
+st.title("⚡ LearnGenic AI: Your AI Study Partner")
 topic = st.text_input("What do you want to learn?", placeholder="e.g. Photosynthesis")
 
 if "study_content" not in st.session_state:
