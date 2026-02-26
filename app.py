@@ -3,45 +3,33 @@ from google import genai
 from fpdf import FPDF
 
 # --- 1. Page Config ---
-st.set_page_config(page_title="AI Study Buddy", page_icon="🧠", layout="centered")
+st.set_page_config(page_title="AI Study Buddy", page_icon="🧠")
 
-# --- 2. CSS Hacks ---
+# --- 2. CSS FIX: Remove "Press enter to apply" ---
 st.markdown(
     """
     <style>
-    /* Hide 'Press enter to apply' instructions */
     [data-testid="InputInstructions"] {
         display: none;
-    }
-    
-    /* Optional: Style the buttons to look more modern */
-    .stButton>button {
-        border-radius: 20px;
-        width: 100%;
-        border: 1px solid #4CAF50;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# --- 3. Sidebar & API Setup ---
-with st.sidebar:
-    st.title("Settings ⚙️")
-    st.info("Your AI Study Buddy uses the latest Gemini 2.5 Flash model.")
-    
-    if "GEMINI_API_KEY" in st.secrets:
-        API_KEY = st.secrets["GEMINI_API_KEY"]
-    else:
-        API_KEY = st.text_input("Enter Gemini API Key:", type="password")
+# --- 3. API Setup ---
+if "GEMINI_API_KEY" in st.secrets:
+    API_KEY = st.secrets["GEMINI_API_KEY"]
+else:
+    API_KEY = st.sidebar.text_input("Enter Gemini API Key:", type="password")
 
 if not API_KEY:
-    st.warning("Please provide an API Key in the sidebar to begin.")
+    st.info("Please add your Google API Key in the sidebar or Secrets to continue.")
     st.stop()
 
 client = genai.Client(api_key=API_KEY)
 
-# --- 4. PDF Helper ---
+# --- 4. Helper Functions ---
 def generate_pdf(text, topic):
     pdf = FPDF()
     pdf.add_page()
@@ -49,68 +37,70 @@ def generate_pdf(text, topic):
     pdf.cell(0, 10, txt=f"Study Guide: {topic}", ln=True, align='C')
     pdf.ln(10)
     pdf.set_font("Arial", size=12)
-    # Clean text for PDF (fpdf doesn't like some special characters)
+    
+    # Clean text for PDF compatibility
     clean_text = text.encode('latin-1', 'ignore').decode('latin-1')
     pdf.multi_cell(0, 10, txt=clean_text)
+    
     return pdf.output(dest='S').encode('latin-1')
 
-# --- 5. Main UI ---
+# --- 5. UI Layout ---
 st.title("AI-Powered Study Buddy 🤓")
-topic = st.text_input("What are we learning today?", placeholder="e.g. Black Holes")
+topic = st.text_input("What do you want to learn?", placeholder="e.g. Photosynthesis")
 
 if "study_content" not in st.session_state:
     st.session_state.study_content = None
 
 if st.button("Generate Lesson") and topic:
-    with st.spinner(f"Creating a custom guide for {topic}..."):
+    with st.spinner(f"Creating your guide for {topic}..."):
         prompt = f"""
-        Act as an expert teacher. Create a comprehensive study guide for: {topic}.
-        1. Start with a clear explanation and a creative analogy.
-        2. Provide 5 essential key points.
-        3. Create 3 multiple-choice questions.
-        4. End the response with the marker '---ANSWERS---' and then list the correct answers.
+        Act as an expert teacher. Create a study guide for: {topic}.
+        Include:
+        1. A simple explanation with an analogy.
+        2. 5 key study bullet points.
+        3. 3 multiple-choice questions.
+        
+        At the very end of your response, write exactly 'ANSWERS_BELOW' and then provide the correct answers for the MCQs.
         """
+        
         try:
-            # Model updated to gemini-2.5-flash for 2026 stability
+            # Using the 2026 workhorse model
             response = client.models.generate_content(
                 model="gemini-2.5-flash", 
                 contents=prompt
             )
             st.session_state.study_content = response.text
+            
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"API Error: {e}")
 
-# --- 6. Displaying the Result with Tabs ---
+# --- 6. Display Content ---
 if st.session_state.study_content:
     full_text = st.session_state.study_content
     
-    # Split content for Quiz Mode
-    if "---ANSWERS---" in full_text:
-        lesson_part, answer_part = full_text.split("---ANSWERS---")
+    # Split text for Quiz Mode
+    if "ANSWERS_BELOW" in full_text:
+        lesson_material, answer_key = full_text.split("ANSWERS_BELOW")
     else:
-        lesson_part, answer_part = full_text, "Answers not found."
+        lesson_material, answer_key = full_text, "Answers not found in response."
 
-    # Use Tabs for a professional look
-    tab1, tab2, tab3 = st.tabs(["📖 Lesson", "📝 Practice Quiz", "📥 Download"])
+    # Show Lesson
+    st.markdown("---")
+    st.markdown(lesson_material)
 
-    with tab1:
-        st.markdown(lesson_part)
+    # Feature 1: Quiz Mode (Expandable Answers)
+    with st.expander("📝 Check Your Answers"):
+        st.write(answer_key.strip())
 
-    with tab2:
-        # We only show the MCQs part here (often at the bottom of the lesson_part)
-        st.info("Test your knowledge below!")
-        st.markdown(lesson_part.split("3.")[-1] if "3." in lesson_part else "Check the lesson tab for questions.")
-        with st.expander("Click to Reveal Answers"):
-            st.success(answer_part.strip())
+    st.markdown("---")
 
-    with tab3:
-        st.write("Take your study guide to go!")
-        pdf_bytes = generate_pdf(full_text, topic)
-        st.download_button(
-            label="Download PDF",
-            data=pdf_bytes,
-            file_name=f"{topic}_Guide.pdf",
-            mime="application/pdf"
-        )
+    # Feature 2: Save as PDF
+    pdf_data = generate_pdf(full_text, topic)
+    st.download_button(
+        label="📥 Download Study Guide (PDF)",
+        data=pdf_data,
+        file_name=f"{topic}_Study_Guide.pdf",
+        mime="application/pdf"
+    )
 else:
-    st.write("No lesson generated yet. Enter a topic above to start!")
+    st.info("Enter a topic above to begin!")
