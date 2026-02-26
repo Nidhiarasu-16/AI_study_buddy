@@ -64,10 +64,10 @@ if st.button("Generate Lesson") and topic:
         Example Format:
         Q1: [Question text here]\n
         
-        A) Option one
-        B) Option two
-        C) Option three
-        D) Option four
+        \tA) Option one
+        \tB) Option two
+        \tC) Option three
+        \tD) Option four
         
         At the very end, write 'ANSWERS_BELOW' followed by the keys.
         """
