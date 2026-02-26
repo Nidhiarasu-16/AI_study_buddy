@@ -1,9 +1,6 @@
 import streamlit as st
 from google import genai
-from google.genai import types
 from fpdf import FPDF
-import io
-from PIL import Image
 
 # --- 1. Page Config ---
 st.set_page_config(page_title="AI Study Buddy", page_icon="🧠")
@@ -24,80 +21,75 @@ client = genai.Client(api_key=API_KEY)
 def generate_pdf(text, topic):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt=f"Study Guide: {topic}", ln=True, align='C')
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(0, 10, txt=f"Study Guide: {topic}", ln=True, align='C')
     pdf.ln(10)
-    # Multi_cell handles word wrapping for long AI responses
-    pdf.multi_cell(0, 10, txt=text.encode('latin-1', 'ignore').decode('latin-1'))
+    pdf.set_font("Arial", size=12)
+    
+    # Clean text for PDF compatibility
+    clean_text = text.encode('latin-1', 'ignore').decode('latin-1')
+    pdf.multi_cell(0, 10, txt=clean_text)
+    
     return pdf.output(dest='S').encode('latin-1')
 
 # --- 4. UI Layout ---
 st.title("AI-Powered Study Buddy 🤓")
-topic = st.text_input("What do you want to learn?", placeholder="e.g. Quantum Entanglement")
+topic = st.text_input("What do you want to learn?", placeholder="e.g. Photosynthesis")
 
-# Use Session State to keep data across button clicks (like showing answers)
+# Using Session State to prevent re-running the AI when clicking "Show Answers"
 if "study_content" not in st.session_state:
     st.session_state.study_content = None
-if "study_image" not in st.session_state:
-    st.session_state.study_image = None
 
 if st.button("Generate Lesson") and topic:
-    with st.spinner(f"Brainstorming and illustrating {topic}..."):
-        # A. Generate Text
-        text_prompt = f"""
+    with st.spinner(f"Creating your guide for {topic}..."):
+        prompt = f"""
         Act as an expert teacher. Create a study guide for: {topic}.
         Include:
         1. A simple explanation with an analogy.
         2. 5 key study bullet points.
-        3. 3 multiple-choice questions (DO NOT include the answers yet).
-        4. At the very end, add a section starting with 'ANSWERS_START' followed by the keys.
+        3. 3 multiple-choice questions.
+        
+        At the very end of your response, write exactly 'ANSWERS_BELOW' and then provide the correct answers for the MCQs.
         """
         
         try:
-            # Text Generation
-            text_res = client.models.generate_content(model="gemini-2.0-flash", contents=text_prompt)
-            st.session_state.study_content = text_res.text
-            
-            # B. Image Generation (Nano Banana)
-            img_prompt = f"A professional, educational diagram or artistic representation of {topic}, high resolution, white background."
-            img_res = client.models.generate_image(
-                model="imagen-3.0-generate-001", # Model ID for Nano Banana / Imagen 3
-                prompt=img_prompt
+            # Using 1.5-flash as it has more stable free-tier quotas than 2.0
+            response = client.models.generate_content(
+                model="gemini-1.5-flash", 
+                contents=prompt
             )
-            st.session_state.study_image = img_res.generated_images[0].image
+            st.session_state.study_content = response.text
             
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"API Error: {e}")
 
 # --- 5. Display Content ---
 if st.session_state.study_content:
-    # Show Image
-    if st.session_state.study_image:
-        st.image(st.session_state.study_image, caption=f"Visualizing {topic}")
-
-    # Split content to hide answers
     full_text = st.session_state.study_content
-    if "ANSWERS_START" in full_text:
-        lesson_part, answer_part = full_text.split("ANSWERS_START")
+    
+    # Split text for Quiz Mode
+    if "ANSWERS_BELOW" in full_text:
+        lesson_material, answer_key = full_text.split("ANSWERS_BELOW")
     else:
-        lesson_part, answer_part = full_text, "Answers not found."
+        lesson_material, answer_key = full_text, "Answers not found in response."
 
-    st.markdown(lesson_part)
+    # Show Lesson
+    st.markdown("---")
+    st.markdown(lesson_material)
 
-    # Quiz Mode: Show Answers Button
-    with st.expander("📝 Quiz Mode: Show Answers"):
-        st.write(answer_part.strip())
+    # Feature 1: Quiz Mode (Expandable Answers)
+    with st.expander("📝 Check Your Answers"):
+        st.write(answer_key.strip())
 
     st.markdown("---")
 
-    # Save as PDF
-    pdf_bytes = generate_pdf(full_text, topic)
+    # Feature 2: Save as PDF
+    pdf_data = generate_pdf(full_text, topic)
     st.download_button(
-        label="📥 Save as PDF",
-        data=pdf_bytes,
-        file_name=f"{topic}_study_guide.pdf",
+        label="📥 Download Study Guide (PDF)",
+        data=pdf_data,
+        file_name=f"{topic}_Study_Guide.pdf",
         mime="application/pdf"
     )
-
 else:
-    st.info("Enter a topic and click 'Generate Lesson' to get started.")
+    st.info("Enter a topic above to begin!")
