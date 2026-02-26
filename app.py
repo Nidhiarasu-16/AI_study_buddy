@@ -63,6 +63,7 @@ if st.button("Generate Lesson") and topic:
         
         Example Format:
         Q1: [Question text here]\n
+        
         A) Option one
         B) Option two
         C) Option three
