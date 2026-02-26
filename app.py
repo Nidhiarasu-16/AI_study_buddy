@@ -42,7 +42,7 @@ def generate_pdf(text, topic):
     return pdf.output(dest='S').encode('latin-1')
 
 # --- 5. UI Layout ---
-st.set_page_config(page_title="LearnGenic AI", page_icon="https://www.freepik.com/free-vector/artificial-intelligence-vector-concept-illustration-isolated-white-background_40268935.htm#fromView=keyword&page=1&position=0&uuid=e9e0ff5e-82e5-4e44-91c6-97982482b52e&query=Ai+brain+png")
+st.set_page_config(page_title="LearnGenic AI", page_icon="N")
 st.title("⚡ LearnGenic AI: Your AI Study Partner")
 topic = st.text_input("What do you want to learn?", placeholder="e.g. Photosynthesis")
 
