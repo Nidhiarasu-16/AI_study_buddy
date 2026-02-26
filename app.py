@@ -42,7 +42,7 @@ def generate_pdf(text, topic):
     return pdf.output(dest='S').encode('latin-1')
 
 # --- 5. UI Layout ---
-st.title("AI-Powered Study Buddy 🤓")
+st.title("AI-Powered Study Buddy ⚡")
 topic = st.text_input("What do you want to learn?", placeholder="e.g. Photosynthesis")
 
 if "study_content" not in st.session_state:
