@@ -1,2 +1,2 @@
-# ai_study_buddy
+# Learn Genic
 AI Powered Study-Buddy
